@@ -1,0 +1,576 @@
+<title>Rimal Home Agent</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: presenter guide on the left, a phone-shaped chat on the right; on phones the chat fills the screen and the guide slides over it. */
+:root {
+  --bg: #e9e5dd;
+  --panel: #fbfaf7;
+  --ink: #15211d;
+  --muted: #5e6b66;
+  --line: #ddd7cc;
+  --accent: #0d7558;
+  --accent-ink: #ffffff;
+  --head: #0d6b51;
+  --head-ink: #ffffff;
+  --thread: #efe9df;
+  --mine: #d6f5cf;
+  --theirs: #ffffff;
+  --notice: #fbf0c4;
+  --notice-ink: #5b5233;
+  --chip: #e8ece9;
+  --chip-ink: #33433d;
+  --tick: #0d7558;
+  --sand: #d9b382;
+  --sand-ink: #3b2a14;
+  --warn: #a3471c;
+  --shadow: 0 1px 0.5px rgba(21, 33, 29, 0.14);
+  --font-body: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1412; --panel: #121c19; --ink: #e6ece9; --muted: #8b9a94; --line: #23302c;
+    --accent: #2cc394; --accent-ink: #08130f; --head: #1b2925; --head-ink: #e6ece9;
+    --thread: #0c1412; --mine: #0f5a45; --theirs: #1d2a26; --notice: #1a2420; --notice-ink: #f2cf7a;
+    --chip: #1c2925; --chip-ink: #b3c1bb; --tick: #2cc394; --sand: #c9a06c; --sand-ink: #2b1d0b;
+    --warn: #f09468; --shadow: 0 1px 0.5px rgba(0, 0, 0, 0.45);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1412; --panel: #121c19; --ink: #e6ece9; --muted: #8b9a94; --line: #23302c;
+  --accent: #2cc394; --accent-ink: #08130f; --head: #1b2925; --head-ink: #e6ece9;
+  --thread: #0c1412; --mine: #0f5a45; --theirs: #1d2a26; --notice: #1a2420; --notice-ink: #f2cf7a;
+  --chip: #1c2925; --chip-ink: #b3c1bb; --tick: #2cc394; --sand: #c9a06c; --sand-ink: #2b1d0b;
+  --warn: #f09468; --shadow: 0 1px 0.5px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+button, textarea, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: default; opacity: 0.55; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.shell {
+  display: grid;
+  grid-template-columns: minmax(280px, 370px) minmax(0, 520px);
+  justify-content: center; gap: 28px;
+  height: 100%;
+  padding-block: 24px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* Guide */
+.guide { overflow-y: auto; min-width: 0; display: flex; flex-direction: column; gap: 0; padding-bottom: 16px; }
+.brand { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+.brand-mark {
+  width: 36px; height: 36px; border-radius: 9px; flex: none;
+  display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); font-weight: 600;
+}
+.brand-name { font-weight: 600; }
+.brand-sub { color: var(--muted); font-size: 13px; }
+.guide h1 { font-size: 23px; line-height: 1.25; margin: 0 0 8px; font-weight: 600; text-wrap: balance; }
+.guide h2 { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); margin: 22px 0 8px; font-weight: 600; }
+.lede { margin: 0; color: var(--muted); max-width: 62ch; }
+.prompts { display: grid; gap: 8px; }
+.prompt {
+  text-align: start; display: grid; gap: 2px; padding: 10px 12px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  transition: border-color 0.15s;
+}
+.prompt:not(:disabled):hover { border-color: var(--accent); }
+.prompt-label { font-size: 12px; font-weight: 600; color: var(--accent); }
+.prompt-text { font-size: 14px; }
+.orders { list-style: none; padding: 0; margin: 0; display: grid; gap: 7px; }
+.orders li { display: grid; grid-template-columns: 76px 1fr; column-gap: 10px; font-size: 14px; }
+.orders code { font-family: var(--font-mono); font-size: 12.5px; grid-row: span 2; padding-top: 2px; }
+.muted { color: var(--muted); font-size: 13px; }
+.tier { display: flex; gap: 6px; flex-wrap: wrap; }
+.tier label {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--panel); font-size: 13px; cursor: pointer;
+}
+.tier input { accent-color: var(--accent); margin: 0; }
+.fine { color: var(--muted); font-size: 13px; margin: 18px 0 12px; max-width: 62ch; }
+.cta {
+  align-self: flex-start; background: var(--accent); color: var(--accent-ink);
+  padding: 10px 16px; border-radius: 999px; text-decoration: none; font-weight: 500;
+}
+
+/* Phone */
+.phone {
+  display: flex; flex-direction: column; min-height: 0; min-width: 0;
+  background: var(--thread); border-radius: 16px; overflow: hidden; border: 1px solid var(--line);
+}
+.chat-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--head); color: var(--head-ink); }
+.avatar {
+  width: 38px; height: 38px; border-radius: 50%; flex: none;
+  display: grid; place-items: center; background: var(--sand); color: var(--sand-ink); font-weight: 600; font-size: 18px;
+}
+.head-text { flex: 1; min-width: 0; }
+.head-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.head-sub { font-size: 12px; opacity: 0.82; }
+.pill-btn {
+  background: transparent; border: 1px solid currentColor; border-radius: 999px;
+  padding: 4px 12px; font-size: 13px; color: var(--head-ink); opacity: 0.92; flex: none;
+}
+.guide-toggle { display: none; }
+
+.thread { flex: 1; overflow-y: auto; padding: 16px 14px 8px; display: flex; flex-direction: column; gap: 6px; }
+.notice {
+  align-self: center; max-width: 92%; text-align: center;
+  background: var(--notice); color: var(--notice-ink); font-size: 12.5px;
+  padding: 6px 12px; border-radius: 8px; margin-block: 4px; box-shadow: var(--shadow);
+}
+.notice.warn { color: var(--warn); }
+.row { display: flex; flex-direction: column; max-width: 84%; min-width: 0; }
+.row.customer { align-self: flex-end; align-items: flex-end; }
+.row.agent { align-self: flex-start; align-items: flex-start; }
+.bubble { padding: 6px 9px 4px; border-radius: 8px; box-shadow: var(--shadow); white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0; }
+.customer .bubble { background: var(--mine); border-start-end-radius: 2px; }
+.agent .bubble { background: var(--theirs); border-start-start-radius: 2px; }
+.time { font-size: 11px; color: var(--muted); text-align: end; margin-top: 1px; font-variant-numeric: tabular-nums; }
+.tag { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-inline-end: 6px; }
+.trace { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.step { font-size: 11.5px; background: var(--chip); color: var(--chip-ink); padding: 2px 8px; border-radius: 999px; }
+.tick { color: var(--tick); margin-inline-end: 4px; font-weight: 600; }
+.detail { opacity: 0.75; font-family: var(--font-mono); font-size: 10.5px; }
+.typing { display: inline-flex; gap: 4px; padding: 10px 12px; align-items: center; }
+.typing span.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); animation: blink 1.2s infinite ease-in-out; }
+.typing span.dot:nth-child(2) { animation-delay: 0.15s; }
+.typing span.dot:nth-child(3) { animation-delay: 0.3s; }
+.typing .doing { font-size: 12px; color: var(--muted); margin-inline-start: 6px; }
+@keyframes blink { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+
+.composer { display: flex; align-items: flex-end; gap: 8px; padding: 8px 10px; background: var(--panel); border-top: 1px solid var(--line); }
+.composer textarea {
+  flex: 1; min-width: 0; resize: none; max-height: 120px; padding: 9px 12px;
+  border: 1px solid var(--line); border-radius: 20px; background: var(--thread);
+}
+.composer textarea:focus-visible { outline: none; border-color: var(--accent); }
+.send {
+  width: 40px; height: 40px; border-radius: 50%; border: 0; flex: none;
+  background: var(--accent); color: var(--accent-ink); display: grid; place-items: center;
+}
+.send.stop { background: var(--warn); }
+
+@media (prefers-reduced-motion: reduce) {
+  .typing span.dot { animation: none; opacity: 0.6; }
+  .prompt, .guide { transition: none !important; }
+}
+@media (max-width: 860px) {
+  .shell { grid-template-columns: 1fr; padding: 0; gap: 0; }
+  .phone { border-radius: 0; border: 0; }
+  .chat-head { padding-left: max(14px, env(safe-area-inset-left, 0px)); padding-right: max(14px, env(safe-area-inset-right, 0px)); }
+  .composer { padding-left: max(10px, env(safe-area-inset-left, 0px)); padding-right: max(10px, env(safe-area-inset-right, 0px)); }
+  .guide {
+    position: fixed; top: 0; bottom: 0; right: 0; width: min(380px, 92vw); z-index: 5;
+    background: var(--bg); padding: calc(20px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) 16px;
+    transform: translateX(105%); transition: transform 0.2s ease; box-shadow: -8px 0 24px rgba(0, 0, 0, 0.22);
+  }
+  .guide.open { transform: none; }
+  .guide-toggle { display: inline-block; }
+}
+</style>
+
+<div class="shell">
+  <aside class="guide" id="guide" aria-label="Demo guide">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">M</span>
+      <div>
+        <div class="brand-name">Masar Cloud Labs</div>
+        <div class="brand-sub">AI Agents &amp; Automation</div>
+      </div>
+    </div>
+    <h1>Arabic customer-service agent</h1>
+    <p class="lede">A live AI agent that replies in Gulf Arabic or English, checks order and shipment records, follows the store's return and approval rules, and hands over to a person when it should.</p>
+
+    <h2>Try one</h2>
+    <div class="prompts" id="prompts"></div>
+
+    <h2>Sample orders</h2>
+    <ul class="orders" id="orders"></ul>
+
+    <h2>Answer style</h2>
+    <div class="tier" role="radiogroup" aria-label="Answer style">
+      <label><input type="radio" name="tier" id="tier-quick" value="quick" checked> Fast</label>
+      <label><input type="radio" name="tier" id="tier-default" value="default"> Thorough (slower)</label>
+    </div>
+
+    <p class="fine">Rules the code enforces, whatever the customer says: returns within 14 days of delivery, and refunds above 2,000 go to a manager. Rimal Home is a fictional store; every customer and order here is sample data. Each message uses the viewer's own Claude account.</p>
+    <a class="cta" href="https://masar-cloud-labs-site.vercel.app" target="_blank" rel="noopener">Build one for your business →</a>
+  </aside>
+
+  <main class="phone">
+    <header class="chat-head">
+      <button class="pill-btn guide-toggle" id="guide-toggle" type="button" aria-expanded="false" aria-controls="guide">Guide</button>
+      <span class="avatar" aria-hidden="true">ر</span>
+      <div class="head-text">
+        <div class="head-name">رمال هوم · Rimal Home</div>
+        <div class="head-sub" id="status">AI assistant · online</div>
+      </div>
+      <button class="pill-btn" id="new-chat" type="button">New chat</button>
+    </header>
+    <div class="thread" id="thread" aria-live="polite"></div>
+    <form class="composer" id="composer">
+      <textarea id="draft" dir="auto" rows="1" maxlength="1000" placeholder="اكتب رسالة · Type a message" aria-label="Message"></textarea>
+      <button type="submit" class="send" id="send" aria-label="Send">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path id="send-icon" d="M3 20.5 21 12 3 3.5v6.6l12 1.9-12 1.9z" fill="currentColor"/></svg>
+      </button>
+    </form>
+  </main>
+</div>
+
+<script>
+(() => {
+  // ---------- Sample data (fictional; dates move with today, Gulf time) ----------
+  const DAY = 86400000;
+  function gulfToday() {
+    const now = new Date(Date.now() + 4 * 3600000);
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  }
+  function day(offset, time) {
+    const iso = new Date(gulfToday().getTime() + offset * DAY).toISOString().slice(0, 10);
+    return time ? iso + "T" + time : iso;
+  }
+  const STORE = {
+    name: "Rimal Home", nameAr: "رمال هوم",
+    description: "an online furniture and home-goods store delivering across the UAE and Saudi Arabia",
+    returns: "Returns within 14 days of delivery for unused items in original packaging. Large furniture is collected free. Refund to the original payment method 5-7 working days after inspection.",
+    delivery: "Standard delivery 2-4 working days in UAE, 3-6 in KSA. Working days are Sunday to Thursday. Free delivery over 500 AED / 500 SAR.",
+    assembly: "Free assembly for beds, wardrobes and dining tables in Dubai, Abu Dhabi, Riyadh and Jeddah only.",
+    hours: "Human team Sunday-Thursday 9:00-18:00 Gulf time. The assistant answers 24/7."
+  };
+  const ORDERS = [
+    { id: "RH-10482", name: "Faisal Al-Qahtani", nameAr: "فيصل القحطاني", phone: "+966 55 410 2290", city: "Dammam", country: "KSA", placedOn: day(-4),
+      items: [{ name: "Oak dining table, 6 seats", qty: 1, price: 3450 }], payment: "Tabby",
+      shipment: { carrier: "SMSA Express", tracking: "SMSA778201945", status: "at_local_warehouse", location: "Dammam warehouse (مستودع الدمام)", eta: day(1, "16:00") } },
+    { id: "RH-10517", name: "Mariam Al-Suwaidi", nameAr: "مريم السويدي", phone: "+971 50 233 8714", city: "Dubai", country: "UAE", placedOn: day(-2),
+      items: [{ name: "Linen sofa, 3 seats, sand", qty: 1, price: 4200 }, { name: "Cushion set", qty: 2, price: 180 }], payment: "card",
+      shipment: { carrier: "Aramex", tracking: "ARX5520193377", status: "out_for_delivery", location: "With driver, Al Barsha (مع المندوب، البرشاء)", eta: day(0, "19:00") } },
+    { id: "RH-10390", name: "Abdullah Al-Harbi", nameAr: "عبدالله الحربي", phone: "+966 50 118 4432", city: "Riyadh", country: "KSA", placedOn: day(-12),
+      items: [{ name: "King bed frame, walnut", qty: 1, price: 5100 }], payment: "cash on delivery",
+      shipment: { carrier: "Naqel", tracking: "NQL30019287", status: "delayed", location: "Riyadh sorting hub", eta: day(3, "14:00"), note: "Delayed 3 days: held for a damaged-packaging check." } },
+    { id: "RH-10301", name: "Khalid Al-Dosari", nameAr: "خالد الدوسري", phone: "+966 56 771 3058", city: "Jeddah", country: "KSA", placedOn: day(-9),
+      items: [{ name: "Four-door wardrobe, white oak", qty: 1, price: 6200 }], payment: "card",
+      shipment: { carrier: "SMSA Express", tracking: "SMSA778199310", status: "delivered", location: "Delivered and assembled", eta: day(-3, "11:00") } },
+    { id: "RH-10233", name: "Noor Al-Mansouri", nameAr: "نور المنصوري", phone: "+971 55 902 1146", city: "Abu Dhabi", country: "UAE", placedOn: day(-21),
+      items: [{ name: "Ceramic table lamp", qty: 2, price: 290 }], payment: "card",
+      shipment: { carrier: "Emirates Post", tracking: "EP99102746AE", status: "delivered", location: "Delivered to customer", eta: day(-9, "12:30") } }
+  ];
+  const RETURN_WINDOW = 14;
+  const APPROVAL_LIMIT = 2000;
+  const MAX_TURNS = 20;
+
+  const digits = (s) => String(s || "").replace(/\D/g, "");
+  function findOrder(orderId, phone) {
+    if (orderId) {
+      const n = digits(orderId);
+      const hit = ORDERS.find((o) => digits(o.id) === n);
+      if (hit) return hit;
+    }
+    const p = digits(phone);
+    if (p.length >= 7) return ORDERS.find((o) => digits(o.phone).endsWith(p.slice(-9)));
+    return undefined;
+  }
+  const currency = (o) => (o.country === "KSA" ? "SAR" : "AED");
+  const pretty = (s) => s.replace(/_/g, " ");
+
+  // ---------- The agent's tools: run here in the page; the rules live in this code ----------
+  let trace = [];           // steps for the reply being written
+  let actionLog = [];       // what happened earlier in this chat, so the next call knows
+  let streamed = "";        // the whole answer so far, from onText
+  let lastToolAt = 0;       // where the text after the last tool round starts
+  function step(label, detail) { trace.push({ label, detail }); lastToolAt = streamed.length; renderThinking(label); }
+
+  const TOOLS = [
+    {
+      name: "lookup_order",
+      description: "Look up an order in the store's order system and the carrier's live shipment status, by order number (e.g. RH-10482 or 10482) or the phone number on the order. Returns the order, its items, payment and shipment, plus today's date. Use it before answering anything about an order; never guess details.",
+      inputSchema: { type: "object", properties: { order_id: { type: "string" }, phone: { type: "string" } } },
+      execute(input) {
+        const orderId = input.order_id ? String(input.order_id) : "";
+        const phone = input.phone ? String(input.phone) : "";
+        if (!orderId && !phone) throw new Error("Give an order number or a phone number.");
+        const o = findOrder(orderId, phone);
+        if (!o) { step("Looked up order in ERP", "no match"); return { found: false }; }
+        step("Looked up order in ERP", o.id);
+        step("Checked carrier status", o.shipment.carrier + ": " + pretty(o.shipment.status));
+        actionLog.push("Looked up " + o.id + " (" + o.name + ", " + pretty(o.shipment.status) + ")");
+        return { found: true, today: day(0), currency: currency(o), order: o };
+      }
+    },
+    {
+      name: "create_return_request",
+      description: "Open a return for a delivered order. The system itself checks the 14-day window and the refund-approval rule and returns the outcome (approved, pending_manager_approval, or not allowed with the reason); report it to the customer exactly. Confirm what and why with the customer first.",
+      inputSchema: { type: "object", properties: { order_id: { type: "string" }, reason: { type: "string", description: "The customer's reason, a few words" } }, required: ["order_id", "reason"] },
+      execute(input) {
+        const o = findOrder(String(input.order_id || ""), "");
+        if (!o) throw new Error("Order not found. Look it up first.");
+        if (o.shipment.status !== "delivered") {
+          step("Checked return policy", "not delivered yet");
+          return { created: false, why: "Not delivered yet, so it cannot be returned. The customer can refuse delivery, or a person can cancel the order." };
+        }
+        const since = Math.round((gulfToday().getTime() - new Date(o.shipment.eta.slice(0, 10) + "T00:00:00Z").getTime()) / DAY);
+        if (since > RETURN_WINDOW) {
+          step("Checked return policy", since + " days, outside " + RETURN_WINDOW);
+          return { created: false, why: "Delivered " + since + " days ago; the window is " + RETURN_WINDOW + " days. Offer a person if they want an exception." };
+        }
+        const refund = o.items.reduce((s, i) => s + i.qty * i.price, 0);
+        const ticket = "RT-" + o.id.slice(3) + "-" + Math.floor(100 + Math.random() * 900);
+        const needsApproval = refund > APPROVAL_LIMIT;
+        step("Checked return policy", since + " days since delivery");
+        step(needsApproval ? "Sent refund for manager approval" : "Created return request", ticket);
+        actionLog.push("Return " + ticket + " for " + o.id + ": " + (needsApproval ? "pending manager approval" : "approved"));
+        return {
+          created: true, ticket, refund_amount: refund, currency: currency(o),
+          status: needsApproval ? "pending_manager_approval" : "approved",
+          next_steps: needsApproval
+            ? "Refund is above " + APPROVAL_LIMIT + ", so a manager must approve it within one working day. Also hand over to a person."
+            : "Courier collects within 2 working days. " + STORE.returns
+        };
+      }
+    },
+    {
+      name: "handoff_to_human",
+      description: "Hand the chat to a human agent. Use when the customer asks for a person, is upset, reports damage, wants an exception, discount or compensation, or a refund needs approval. Returns a reference and when the team will reply.",
+      inputSchema: { type: "object", properties: { reason: { type: "string" }, summary: { type: "string", description: "For the human agent: who, which order, what was tried, what the customer wants" } }, required: ["reason", "summary"] },
+      execute(input) {
+        const ref = "HO-" + Math.floor(1000 + Math.random() * 9000);
+        step("Handed over to a person", ref);
+        actionLog.push("Handed over to a person, " + ref + ": " + String(input.reason || "requested"));
+        return { handed_over: true, reference: ref, expected_reply: "A team member replies in this chat within 15 minutes during working hours (Sun-Thu 9:00-18:00 Gulf time), otherwise first thing next working day." };
+      }
+    }
+  ];
+
+  function rules() {
+    return [
+      "You are the WhatsApp customer-service assistant for " + STORE.name + " (" + STORE.nameAr + "), " + STORE.description + ". This is a fictional store in a sales demo, but play the role fully.",
+      "Today is " + new Date(gulfToday()).toUTCString().slice(0, 16) + " (Gulf time).",
+      "",
+      "Language: reply in the customer's language and dialect. Gulf Arabic (Khaleeji, Emirati, Saudi) gets natural Gulf Arabic, not formal MSA; English gets English. Return greetings properly (وعليكم السلام).",
+      "Style: WhatsApp. 1-4 short sentences, no headings, no markdown, no tables. Use the customer's first name once known. Give times in local time with the day in words (today, tomorrow, Thursday).",
+      "",
+      "Tools: always call lookup_order before answering about an order; never invent order details, dates, prices or tracking numbers. Open returns with create_return_request and report its outcome exactly. Call handoff_to_human when the customer asks for a person, is upset, reports damage, wants an exception or compensation, or a refund needs approval. Do not write any text before or between tool calls; write only the final reply to the customer.",
+      "Privacy: share order details only after the customer gives the order number or the phone number on it. Never list other customers' orders.",
+      "",
+      "Store policies (answer policy questions from these only):",
+      "- Returns: " + STORE.returns,
+      "- Delivery: " + STORE.delivery,
+      "- Assembly: " + STORE.assembly,
+      "- Hours: " + STORE.hours,
+      "",
+      actionLog.length ? "Already done earlier in this chat (call lookup_order again if you need the details):\n- " + actionLog.join("\n- ") : "Nothing has been looked up yet in this chat.",
+      "",
+      "The chat with the customer follows. Reply to their latest message only."
+    ].join("\n");
+  }
+
+  // ---------- UI ----------
+  const PROMPTS = [
+    ["Track a shipment", "السلام عليكم، أبي أعرف وين وصلت شحنتي؟ رقم الطلب 10482"],
+    ["Delayed order, upset", "وش السالفة؟ الطلب RH-10390 متأخر وأنا دافع ومنتظر من أسبوعين!"],
+    ["Return within policy", "مرحبا، ابا أرجع الأباجورة، طلبي RH-10233. وحدة منهم لونها مو نفس الصورة"],
+    ["Refund needs approval", "I want to return the wardrobe from order RH-10301, it doesn't fit the room. I need a full refund"],
+    ["Find order by phone", "هلا، ما عندي رقم الطلب بس رقمي 050 233 8714، متى يوصل الكنب؟"],
+    ["Policy question", "عندكم تركيب مجاني للسرير في جدة؟"]
+  ];
+  const SAMPLE_ORDERS = [
+    ["RH-10482", "فيصل · Dammam", "At local warehouse, arrives tomorrow"],
+    ["RH-10517", "مريم · Dubai", "Out for delivery today"],
+    ["RH-10390", "عبدالله · Riyadh", "Delayed 3 days"],
+    ["RH-10301", "خالد · Jeddah", "Wardrobe 6,200, delivered 3 days ago"],
+    ["RH-10233", "نور · Abu Dhabi", "Delivered 9 days ago"]
+  ];
+  const EXAMPLE = [
+    { from: "notice", text: "Example conversation. Press New chat or pick a prompt to talk to the live agent." },
+    { from: "customer", text: "السلام عليكم، أبي أعرف وين وصلت شحنتي؟ رقم الطلب 10482", time: "10:02", example: true },
+    { from: "agent", text: "وعليكم السلام فيصل! طاولة الطعام وصلت مستودع الدمام، وبتوصلك بكرة قبل 4 العصر مع سمسا. تبي أرسل لك رقم التتبع؟", time: "10:02", example: true,
+      trace: [{ label: "Looked up order in ERP", detail: "RH-10482" }, { label: "Checked carrier status", detail: "SMSA Express: at local warehouse" }, { label: "Logged to CRM" }] }
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const thread = $("thread"), draft = $("draft"), sendBtn = $("send"), statusEl = $("status"), guide = $("guide");
+  let messages = [];        // the bubbles on screen
+  let turns = [];           // {role, content} the page keeps for Claude (Claude keeps nothing)
+  let busy = false, ctl = null, sample = null, sampleChecked = false, unavailable = false;
+
+  function clock() { return new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }); }
+  function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+
+  function render() {
+    thread.replaceChildren();
+    for (const m of messages) {
+      if (m.from === "notice") { thread.append(el("div", "notice" + (m.warn ? " warn" : ""), m.text)); continue; }
+      const row = el("div", "row " + m.from);
+      const bubble = el("div", "bubble");
+      const text = el("div", "text", m.text); text.dir = "auto";
+      const time = el("div", "time");
+      if (m.example) time.append(el("span", "tag", "example"));
+      time.append(document.createTextNode(m.time || ""));
+      bubble.append(text, time); row.append(bubble);
+      if (m.trace && m.trace.length) {
+        const t = el("div", "trace");
+        for (const s of m.trace) {
+          const chip = el("span", "step"); chip.append(el("span", "tick", "✓"), document.createTextNode(s.label));
+          if (s.detail) chip.append(el("span", "detail", " · " + s.detail));
+          t.append(chip);
+        }
+        row.append(t);
+      }
+      thread.append(row);
+    }
+    if (busy) {
+      const row = el("div", "row agent"); const b = el("div", "bubble typing");
+      b.setAttribute("aria-label", "Assistant is working");
+      b.append(el("span", "dot"), el("span", "dot"), el("span", "dot"), el("span", "doing", thinkingLabel));
+      row.append(b); thread.append(row);
+    }
+    thread.scrollTop = thread.scrollHeight;
+  }
+  let thinkingLabel = "";
+  function renderThinking(label) { thinkingLabel = label + "…"; render(); }
+
+  function setBusy(v) {
+    busy = v;
+    statusEl.textContent = v ? "typing…" : "AI assistant · online";
+    sendBtn.classList.toggle("stop", v);
+    sendBtn.setAttribute("aria-label", v ? "Stop" : "Send");
+    $("send-icon").setAttribute("d", v ? "M7 7h10v10H7z" : "M3 20.5 21 12 3 3.5v6.6l12 1.9-12 1.9z");
+    $("new-chat").disabled = v;
+    for (const b of document.querySelectorAll(".prompt")) b.disabled = v || unavailable;
+    render();
+  }
+
+  function startChat() {
+    turns = []; actionLog = []; trace = [];
+    messages = [{ from: "notice", text: "Live AI demo for a fictional store. Write in Gulf Arabic or English." }];
+    render();
+  }
+
+  function errorCopy(code) {
+    switch (code) {
+      case "not_granted": case "sampling_disabled": case "capability_disabled": case "not_declared": case "capability_removed":
+        return "Claude isn't allowed for this page in this view, so the live agent is off. Allow it from the page's permissions to chat.";
+      case "tools_unavailable": return "This view can't run the agent's tools. Open the page in claude.ai in a browser.";
+      case "rate_limited": return "Too many messages for now, or this account's usage limit was reached. Wait a moment, then send again.";
+      case "session_expired": return "Your Claude session expired. Sign in again, then resend.";
+      case "refused": return "The assistant declined that message. Try asking it another way.";
+      case "prompt_too_large": return "This chat has grown too long for the demo. Press New chat.";
+      default: return "The assistant couldn't reply just now. Send the message again.";
+    }
+  }
+  const PERMANENT = new Set(["not_granted", "sampling_disabled", "capability_disabled", "not_declared", "capability_removed", "tools_unavailable"]);
+
+  function markUnavailable(text) {
+    unavailable = true;
+    messages.push({ from: "notice", text, warn: true });
+    draft.disabled = true; sendBtn.disabled = true;
+    for (const b of document.querySelectorAll(".prompt")) b.disabled = true;
+    render();
+  }
+
+  async function send(raw) {
+    const text = String(raw || "").trim();
+    if (!text || busy || unavailable) return;
+    if (!sampleChecked) { sample = await claude.use("sample").catch(() => null); sampleChecked = true; }
+    if (!sample) { markUnavailable("The live agent needs this page opened in Claude, signed in. The example above shows how it answers."); return; }
+    if (messages.some((m) => m.example)) startChat();
+    if (turns.filter((t) => t.role === "user").length >= MAX_TURNS) {
+      messages.push({ from: "notice", text: "This demo chat has reached " + MAX_TURNS + " messages. Press New chat to start again.", warn: true }); render(); return;
+    }
+    draft.value = ""; autosize(); closeGuide();
+    messages.push({ from: "customer", text, time: clock() });
+    turns.push({ role: "user", content: text });
+    trace = []; thinkingLabel = "Thinking"; streamed = ""; lastToolAt = 0;
+    ctl = new AbortController();
+    setBusy(true);
+    try {
+      const tier = document.querySelector('input[name="tier"]:checked').value;
+      const result = await sample([{ role: "user", content: rules() }, ...turns], {
+        tools: TOOLS, signal: ctl.signal, modelTier: tier,
+        onText: ({ text }) => { streamed = text; }
+      });
+      const reply = lastRound(result.text);
+      turns.push({ role: "assistant", content: reply });
+      if (trace.length) trace.push({ label: "Logged to CRM" });
+      messages.push({ from: "agent", text: reply, time: clock(), trace: trace.slice() });
+      if (result.truncated) messages.push({ from: "notice", text: "The reply was cut short. Ask a shorter question." });
+    } catch (e) {
+      const code = e && e.code;
+      turns.pop();
+      if (code === "cancelled") {
+        messages.push({ from: "notice", text: "Stopped. Nothing was sent to the customer." });
+      } else if (PERMANENT.has(code)) {
+        setBusy(false); markUnavailable(errorCopy(code)); return;
+      } else {
+        messages.push({ from: "notice", text: errorCopy(code), warn: true });
+      }
+    } finally {
+      ctl = null; setBusy(false); if (!unavailable) draft.focus();
+    }
+  }
+  // With tools, the text of every round arrives as one string; the customer sees only what came after the last tool ran.
+  function lastRound(text) {
+    const all = String(text);
+    const tail = all.slice(lastToolAt).trim();
+    return tail || all.trim();
+  }
+
+  function autosize() { draft.style.height = "auto"; draft.style.height = Math.min(draft.scrollHeight, 120) + "px"; }
+  function closeGuide() { guide.classList.remove("open"); $("guide-toggle").setAttribute("aria-expanded", "false"); $("guide-toggle").textContent = "Guide"; }
+
+  // Build the guide
+  const promptsEl = $("prompts");
+  for (const [label, text] of PROMPTS) {
+    const b = el("button", "prompt"); b.type = "button";
+    const t = el("span", "prompt-text", text); t.dir = "auto";
+    b.append(el("span", "prompt-label", label), t);
+    b.addEventListener("click", () => send(text));
+    promptsEl.append(b);
+  }
+  const ordersEl = $("orders");
+  for (const [id, who, state] of SAMPLE_ORDERS) {
+    const li = el("li"); const w = el("span", null, who); w.dir = "auto";
+    li.append(el("code", null, id), w, el("span", "muted", state)); ordersEl.append(li);
+  }
+
+  $("composer").addEventListener("submit", (e) => { e.preventDefault(); if (busy) { ctl && ctl.abort(); } else send(draft.value); });
+  draft.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); if (!busy) send(draft.value); } });
+  draft.addEventListener("input", autosize);
+  $("new-chat").addEventListener("click", () => { if (!unavailable) startChat(); });
+  $("guide-toggle").addEventListener("click", () => {
+    const open = !guide.classList.contains("open");
+    guide.classList.toggle("open", open);
+    $("guide-toggle").setAttribute("aria-expanded", String(open));
+    $("guide-toggle").textContent = open ? "Close" : "Guide";
+  });
+
+  messages = EXAMPLE.slice();
+  render();
+
+  // Light the live agent up once we know whether this view can ask Claude.
+  if (window.claude && typeof window.claude.use === "function") {
+    claude.use("sample").then((s) => {
+      sample = s; sampleChecked = true;
+      if (!s) { markUnavailable("The live agent needs this page opened in Claude, signed in. The example above shows how it answers."); return; }
+      if (s.limits) s.limits().then((l) => { if (l && !l.tools) markUnavailable(errorCopy("tools_unavailable")); }).catch(() => {});
+    }).catch(() => { sampleChecked = true; markUnavailable("The live agent needs this page opened in Claude, signed in."); });
+  } else {
+    sampleChecked = true;
+    markUnavailable("The live agent needs this page opened in Claude, signed in. The example above shows how it answers.");
+  }
+})();
+</script>

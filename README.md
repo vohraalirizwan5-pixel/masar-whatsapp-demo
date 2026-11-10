@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Masar Cloud Labs: Arabic AI customer-service agent (client demo)
 
-## Getting Started
+A live demo of a WhatsApp-style customer-service agent for a **fictional** store, Rimal Home (رمال هوم).
+It replies in Gulf Arabic or English, looks up orders and shipments, opens returns, applies a refund-approval
+rule and hands over to a person. All customers and orders are sample data in `src/lib/data.ts`.
 
-First, run the development server:
+**Stack:** Next.js 15 · TypeScript · Claude API (tool use) · Vercel
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Try these in the demo
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| Ask about | What the agent shows |
+|---|---|
+| `RH-10482` | A shipment waiting at the local warehouse, with its ETA |
+| `RH-10390` | A delayed order, explained with the carrier's reason |
+| `RH-10233` (delivered 9 days ago) | A return opened within the 14-day window |
+| `RH-10301` (6,200 wardrobe) | A refund over 2,000 sent for manager approval instead of auto-approved |
+| "I want to talk to a person" | A hand-over to a human agent |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Write in Gulf Arabic or English; the agent answers in the language you use.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Run locally
 
-## Learn More
+1. Copy `.env.example` to `.env.local` and set `ANTHROPIC_API_KEY` (a workspace-scoped key).
+2. `npm install`, then `npm run dev`, then open http://localhost:3000.
 
-To learn more about Next.js, take a look at the following resources:
+## How it works
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `src/app/api/chat/route.ts`: the only place the key is used. Calls `claude-opus-5-5` (effort `low`) with three tools,
+  runs the tool loop, and returns the conversation history append-only. Server-side refusal fallback is on
+  (`fallbacks: "default"`).
+- `src/lib/tools.ts`: `lookup_order`, `create_return_request` (14-day window; refunds over 2,000 need a manager),
+  `handoff_to_human`. The rules live in code, not in the prompt, so the model cannot talk its way past them.
+- `src/app/page.tsx`: the chat, with a strip under each reply showing what the agent did, plus a presenter guide.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Guards for a public link
 
-## Deploy on Vercel
+- `DEMO_PASSCODE` (optional): visitors must enter it before chatting.
+- 20 customer messages per conversation, 1,000 characters per message.
+- Set a monthly spend limit on the key's workspace in the Anthropic Console.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deploy (Vercel)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Import the repo in Vercel, add `ANTHROPIC_API_KEY` (and `DEMO_PASSCODE` if wanted) under Environment Variables, deploy.
